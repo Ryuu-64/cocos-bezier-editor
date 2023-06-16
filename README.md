@@ -1,1 +1,1 @@
-# cocos-bezier-editor
+# cocos-curve-editor
