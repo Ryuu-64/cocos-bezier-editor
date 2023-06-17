@@ -1,6 +1,6 @@
 import ccclass = cc._decorator.ccclass;
 import {MulticastFunction} from "multicast-function";
-import {AssetLoader} from '../aaset/AssetLoader';
+import {AssetLoader} from '../asset/asset-loader';
 
 @ccclass
 export class ResourcesManager extends cc.Component {

@@ -2,7 +2,6 @@ import Vec2 = cc.Vec2;
 
 export class Bezier {
     /**
-     * https://en.wikipedia.org/wiki/B%C3%A9zier_curve
      * @param t [0, 1]
      * @param p 4 control points
      */
