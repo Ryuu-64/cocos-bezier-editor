@@ -45,6 +45,7 @@ export class ApplicationManager extends cc.Component {
             return;
         }
 
+        cc.debug.setDisplayStats(false);
         console.info(`${ApplicationManager.name}, 初始化`);
         const node = new Node();
         cc.game.addPersistRootNode(node);

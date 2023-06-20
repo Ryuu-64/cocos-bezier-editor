@@ -2,7 +2,7 @@
   "engine": "cocos2d-html5",
   "packages": "packages",
   "version": "2.4.11",
-  "name": "bezier",
+  "name": "cocos-curve-editor",
   "id": "6dfbc264-8eed-4acb-9b4c-f5fae9de7d5d",
   "isNew": false
 }
