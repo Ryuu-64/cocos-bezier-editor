@@ -1,13 +1,10 @@
 import EditBox = cc.EditBox;
-import {BezierEditorController} from './BezierEditorController';
 import {ApplicationManager} from '../../manager/ApplicationManager';
 
 const {ccclass} = cc._decorator;
 
 @ccclass
 export class CurveCanvasSize extends cc.Component {
-    private editorController: BezierEditorController;
-
     protected onLoad() {
         if (!ApplicationManager.isInit) {
             ApplicationManager.init();
@@ -26,20 +23,15 @@ export class CurveCanvasSize extends cc.Component {
     }
 
     private load() {
-        this.editorController = cc.Canvas.instance.getComponent(BezierEditorController);
 
         const editBoxWidth = cc.find('editBoxWidth', this.node).getComponent(EditBox);
         const editBoxHeight = cc.find('editBoxHeight', this.node).getComponent(EditBox);
 
-        this.editorController.afterDesignCurveCanvasSizeChanged.add((size) => {
-            editBoxWidth.string = String(size.x);
-            editBoxHeight.string = String(size.y);
-        });
+        const nodeBackground = cc.find('curveCanvas/background', cc.director.getScene());
+        editBoxWidth.string = String(nodeBackground.width);
+        editBoxHeight.string = String(nodeBackground.height);
 
-        editBoxWidth.string = String(this.editorController.designCurveCanvasSize.x);
-        editBoxHeight.string = String(this.editorController.designCurveCanvasSize.y);
-
-        const setEditBoxWidth = () => {
+        const setEditBoxWidthAndHeight = () => {
             const width = Number(editBoxWidth.string);
             if (Number.isNaN(width)) {
                 console.warn(`invalid curve canvas width, value=${editBoxWidth.string}`);
@@ -50,27 +42,19 @@ export class CurveCanvasSize extends cc.Component {
                 console.warn(`invalid curve canvas height, value=${editBoxHeight.string}`);
                 editBoxHeight.string = '0';
             }
-            this.editorController.setDesignCurveCanvasSize(width, height);
-        };
-
-        const setEditBoxHeight = () => {
+            nodeBackground.width = width;
+            nodeBackground.height = height;
         };
 
         editBoxWidth.node.on(
             'editing-return',
-            () => {
-                setEditBoxWidth();
-                setEditBoxHeight();
-            },
+            setEditBoxWidthAndHeight,
             this
         );
 
         editBoxHeight.node.on(
             'editing-return',
-            () => {
-                setEditBoxWidth();
-                setEditBoxHeight();
-            },
+            setEditBoxWidthAndHeight,
             this
         );
     }

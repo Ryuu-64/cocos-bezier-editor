@@ -1,6 +1,6 @@
 import EditBox = cc.EditBox;
 import {CubicBezierCurve} from '../../dto/cubic-bezier-curve';
-import {BezierEditorController} from './BezierEditorController';
+import {EditorController} from "./EditorController";
 
 const {ccclass} = cc._decorator;
 
@@ -15,13 +15,15 @@ export class LoadController extends cc.Component {
             this
         );
 
-        const bezierEditorController = cc.Canvas.instance.getComponent(BezierEditorController);
+        const editorController =
+            cc.find('editorController', cc.director.getScene())
+                .getComponent(EditorController);
         cc.find('btnLoad', this.node).on(
             'click',
             () => {
                 const curveJsonString = editBoxCurveJson.string;
                 const curve = JSON.parse(curveJsonString) as CubicBezierCurve;
-                bezierEditorController.loadBezierNodes(curve);
+                editorController.loadBezierNodes(curve);
             },
             this
         );

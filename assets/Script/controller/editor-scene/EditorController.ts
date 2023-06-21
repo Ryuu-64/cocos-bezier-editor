@@ -5,14 +5,13 @@ import Graphics = cc.Graphics;
 import {CubicBezierCurve} from "../../dto/cubic-bezier-curve";
 import {ApplicationManager} from '../../manager/ApplicationManager';
 import Node = cc.Node;
-import {CurveCanvasSize} from './CurveCanvasSize';
-import {MulticastFunction} from 'multicast-function';
-import Canvas = cc.Canvas;
+import EventMouse = cc.Event.EventMouse;
+import Camera = cc.Camera;
 
 const {ccclass} = cc._decorator;
 
 @ccclass
-export class BezierEditorController extends cc.Component {
+export class EditorController extends cc.Component {
     private nodeBezierNodePrefab: cc.Node;
 
     private graphics: Graphics;
@@ -24,36 +23,6 @@ export class BezierEditorController extends cc.Component {
     private control2Color = new cc.Color(0, 255, 0, 255);
 
     private curveCanvas: Node;
-
-    private _designCurveCanvasSize: cc.Vec2 = new cc.Vec2();
-
-    private curveCanvasScale: number;
-
-    readonly afterDesignCurveCanvasSizeChanged =
-        new MulticastFunction<(size: cc.Vec2) => void>();
-
-    //region getter and setter
-    get designCurveCanvasSize(): cc.Vec2 {
-        return this._designCurveCanvasSize;
-    }
-
-    setDesignCurveCanvasSize(width: number, height: number) {
-        this._designCurveCanvasSize.x = width;
-        this._designCurveCanvasSize.y = height;
-        this.afterSetDesignCurveCanvasSize();
-    }
-
-    private afterSetDesignCurveCanvasSize() {
-        this.afterDesignCurveCanvasSizeChanged.invoke(this._designCurveCanvasSize);
-
-        this.curveCanvasScale = CurveCanvasSize.getScale(
-            this._designCurveCanvasSize.x, this._designCurveCanvasSize.y
-        );
-        this.curveCanvas.width = this._designCurveCanvasSize.x / this.curveCanvasScale;
-        this.curveCanvas.height = this._designCurveCanvasSize.y / this.curveCanvasScale;
-    }
-
-    //endregion
 
     protected onLoad() {
         if (!ApplicationManager.isInit) {
@@ -70,6 +39,32 @@ export class BezierEditorController extends cc.Component {
         }
 
         this.drawAll();
+        // //region TODO
+        // const onEventMouse = (event: cc.Event.EventMouse) => {
+        //     const mousePosition = event.getLocation();
+        //     console.log('Mouse Position:', mousePosition.x, mousePosition.y);
+        // };
+        // cc.Canvas.instance.node.on(
+        //     cc.Node.EventType.TOUCH_START,
+        //     onEventMouse,
+        //     this
+        // );
+        // cc.Canvas.instance.node.on(
+        //     cc.Node.EventType.TOUCH_MOVE,
+        //     onEventMouse,
+        //     this
+        // );
+        // cc.Canvas.instance.node.on(
+        //     cc.Node.EventType.TOUCH_END,
+        //     onEventMouse,
+        //     this
+        // );
+        // cc.Canvas.instance.node.on(
+        //     cc.Node.EventType.TOUCH_CANCEL,
+        //     onEventMouse,
+        //     this
+        // );
+        // //endregion
     }
 
     private getBezierControlPoints(): cc.Vec2[] {
@@ -77,16 +72,33 @@ export class BezierEditorController extends cc.Component {
     }
 
     private load() {
-        this.curveCanvas = cc.find('curveCanvas', cc.Canvas.instance.node);
+        const cameraMain = cc.find('cameraMain', cc.director.getScene()).getComponent(Camera);
+        cc.Canvas.instance.node.on(
+            cc.Node.EventType.MOUSE_WHEEL,
+            (event: EventMouse) => {
+                const scrollY = event.getScrollY();
+                if (scrollY === 0) {
+                    return;
+                }
 
-        cc.find('controlPanel/btnAddBezierPoints', this.node)
+                cameraMain.orthoSize -= scrollY;
+                if (cameraMain.orthoSize <= 0) {
+                    cameraMain.orthoSize = 120;
+                }
+            },
+            this
+        );
+
+        this.curveCanvas = cc.find('curveCanvas', cc.director.getScene());
+
+        cc.find('Canvas/btnAddBezierPoints', cc.director.getScene())
             .on('click', () => this.addBezierNodes(), this);
 
-        cc.find('controlPanel/btnDownloadJson', this.node)
+        cc.find('Canvas/btnDownloadJson', cc.director.getScene())
             .on('click', () => this.downloadBezierControlPoints(), this);
 
-        const pnlLoad = cc.find('controlPanel/pnlLoad', this.node);
-        cc.find('controlPanel/btnLoadFromJson', this.node)
+        const pnlLoad = cc.find('Canvas/pnlLoad', cc.director.getScene());
+        cc.find('Canvas/btnLoadFromJson', cc.director.getScene())
             .on('click', () => pnlLoad.active = true, this);
 
         this.nodeBezierNodePrefab =
@@ -95,12 +107,9 @@ export class BezierEditorController extends cc.Component {
                 .prefabLoader
                 .get<cc.Node>('prefab/nodeBezierNode');
 
-        this.graphics = cc.find('curveCanvas/nodeGraphics', this.node).getComponent(Graphics);
+        this.graphics = cc.find('curveCanvas/nodeGraphics', cc.director.getScene()).getComponent(Graphics);
 
         this.initBezierNodes();
-
-        const designResolution = this.getComponent(Canvas).designResolution;
-        this._designCurveCanvasSize = new Vec2(designResolution.width, designResolution.height);
     }
 
     private downloadBezierControlPoints() {
@@ -112,17 +121,10 @@ export class BezierEditorController extends cc.Component {
         downloadLink.download = 'cubicBezierCurveControlPoints.json';
         downloadLink.innerHTML = "Download File";
 
-        const controlPoints = [];
-        for (const controlPoint of this.getBezierControlPoints()) {
-            controlPoints.push(new Vec2(
-                controlPoint.x * this.curveCanvasScale,
-                controlPoint.y * this.curveCanvasScale
-            ));
-        }
         const blob = new Blob(
             [
                 JSON.stringify(new CubicBezierCurve(
-                    this._designCurveCanvasSize, controlPoints
+                    this.getBezierControlPoints()
                 ))
             ],
             {type: 'application/json'}
@@ -165,26 +167,18 @@ export class BezierEditorController extends cc.Component {
             bezierControlNode.node.destroy();
         }
 
-        this.setDesignCurveCanvasSize(curve.canvasSize.x, curve.canvasSize.y);
         this.bezierControlNodes = [];
-        const controlPoints = [];
-        for (const controlPoint of curve.controlPoints) {
-            controlPoints.push(new Vec2(
-                controlPoint.x / this.curveCanvasScale,
-                controlPoint.y / this.curveCanvasScale
-            ));
-        }
-        if (controlPoints.length < 4) {
+        if (curve.controlPoints.length < 4) {
             console.error(`curve controlPoints must >= 4, curve=${curve}`);
         }
         this.initBezierNodesByPos(
-            controlPoints[0],
-            controlPoints[1],
-            controlPoints[2],
-            controlPoints[3]
+            curve.controlPoints[0],
+            curve.controlPoints[1],
+            curve.controlPoints[2],
+            curve.controlPoints[3]
         );
-        if (controlPoints.length > 4) {
-            this.addBezierNodesByPos(controlPoints.slice(4));
+        if (curve.controlPoints.length > 4) {
+            this.addBezierNodesByPos(curve.controlPoints.slice(4));
         }
     }
 
